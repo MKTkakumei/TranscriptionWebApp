@@ -248,6 +248,59 @@ class TranscriptionApp {
         const now = Date.now();
 
         // 1. Exact duplicate prevention (within 2 seconds)
+        if (text === this.lastLogContent && (now - this.lastLogTime) < 2000) {
+            console.log('Duplicate log ignored:', text);
+            return;
+        }
+
+        // 2. Mobile-specific enhanced duplicate prevention
+        if (this.isMobile && this.lastLogContent && this.lastLogContent.length > 0) {
+            // Normalize texts by removing whitespace for comparison
+            const normalizedText = text.replace(/\s+/g, '');
+            const normalizedLastLog = this.lastLogContent.replace(/\s+/g, '');
+
+            // A. Forward Overlap Replacement (New log starts with previous log)
+            // Example: "Hello" -> "Hello world"
+            if (normalizedText.startsWith(normalizedLastLog)) {
+                console.log('Replacing partial log (Mobile):', this.lastLogContent, 'with:', text);
+
+                // Remove the last log entry from DOM
+                const entries = this.logArea.querySelectorAll('.log-entry:not(.interim)');
+                if (entries.length > 0) {
+                    const lastEntry = entries[entries.length - 1];
+                    // Verify content match (ignoring whitespace for safety)
+                    const lastEntryText = lastEntry.querySelector('.text').textContent.replace(/\s+/g, '');
+                    if (lastEntryText === normalizedLastLog) {
+                        lastEntry.remove();
+                    }
+                }
+            }
+            // B. Backward Overlap Ignore (New log is a substring of previous log)
+            // Example: "Hello world" -> "Hello" (sometimes happens with rapid updates)
+            // Only ignore if it happens very quickly (e.g., within 1 second)
+            else if (normalizedLastLog.startsWith(normalizedText) && (now - this.lastLogTime) < 1000) {
+                console.log('Ignoring substring log (Mobile):', text);
+                return;
+            }
+        } else if (!this.isMobile) {
+            // PC: Standard overlap replacement (Exact match start only)
+            if (this.lastLogContent && text.startsWith(this.lastLogContent) && this.lastLogContent.length > 0) {
+                console.log('Replacing partial log (PC):', this.lastLogContent, 'with:', text);
+                const entries = this.logArea.querySelectorAll('.log-entry:not(.interim)');
+                if (entries.length > 0) {
+                    const lastEntry = entries[entries.length - 1];
+                    if (lastEntry.querySelector('.text').textContent === this.lastLogContent) {
+                        lastEntry.remove();
+                    }
+                }
+            }
+        }
+
+        this.lastLogContent = text;
+        this.lastLogTime = now;
+
+        const entryDiv = document.createElement('div');
+        entryDiv.className = 'log-entry';
 
         const timeSpan = document.createElement('span');
         timeSpan.className = 'timestamp';
