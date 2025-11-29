@@ -27,6 +27,9 @@ class TranscriptionApp {
         this.lastLogContent = '';
         this.lastLogTime = 0;
 
+        // Mobile detection
+        this.isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
         this.init();
         this.setupVisibilityDetection();
     }
@@ -44,7 +47,8 @@ class TranscriptionApp {
         // Configuration
         this.recognition.lang = 'ja-JP';
         this.recognition.continuous = true;
-        this.recognition.interimResults = true;
+        // Disable interim results on mobile to prevent double display issue
+        this.recognition.interimResults = !this.isMobile;
         this.recognition.maxAlternatives = 1;
 
         // Load speaker name from local storage
@@ -110,7 +114,8 @@ class TranscriptionApp {
             if (finalTranscript) {
                 this.addLogEntry(finalTranscript);
                 this.removeInterimDiv();
-            } else if (interimTranscript) {
+            } else if (interimTranscript && !this.isMobile) {
+                // Only show interim results on non-mobile devices
                 this.updateInterimDiv(interimTranscript);
             }
         };
@@ -240,11 +245,29 @@ class TranscriptionApp {
     addLogEntry(text) {
         if (!text.trim()) return;
 
-        // Duplicate prevention
         const now = Date.now();
+
+        // 1. Exact duplicate prevention (within 2 seconds)
         if (text === this.lastLogContent && (now - this.lastLogTime) < 2000) {
             console.log('Duplicate log ignored:', text);
             return;
+        }
+
+        // 2. Overlap replacement (New log starts with previous log)
+        // Example: "Hello" -> "Hello world"
+        // This often happens on mobile when long sentences are processed
+        if (this.lastLogContent && text.startsWith(this.lastLogContent) && this.lastLogContent.length > 0) {
+            console.log('Replacing partial log:', this.lastLogContent, 'with:', text);
+
+            // Remove the last log entry from DOM
+            const entries = this.logArea.querySelectorAll('.log-entry:not(.interim)');
+            if (entries.length > 0) {
+                const lastEntry = entries[entries.length - 1];
+                // Double check if the text matches to be safe
+                if (lastEntry.querySelector('.text').textContent === this.lastLogContent) {
+                    lastEntry.remove();
+                }
+            }
         }
 
         this.lastLogContent = text;
