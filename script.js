@@ -11,6 +11,15 @@ class TranscriptionApp {
         this.statusEl = document.getElementById('status');
         this.logArea = document.getElementById('transcriptionLog');
 
+        // Merge Elements
+        this.logUpload = document.getElementById('logUpload');
+        this.mergeBtn = document.getElementById('mergeBtn');
+        this.fileList = document.getElementById('fileList');
+        this.clearFilesBtn = document.getElementById('clearFilesBtn');
+
+        // State
+        this.selectedFiles = [];
+
         // Interim result element
         this.interimDiv = null;
 
@@ -44,6 +53,11 @@ class TranscriptionApp {
         this.startBtn.addEventListener('click', () => this.startRecording());
         this.stopBtn.addEventListener('click', () => this.stopRecording());
         this.downloadBtn.addEventListener('click', () => this.downloadLog());
+
+        // Merge Event Listeners
+        this.logUpload.addEventListener('change', (e) => this.handleFileSelect(e));
+        this.mergeBtn.addEventListener('click', () => this.mergeLogs());
+        this.clearFilesBtn.addEventListener('click', () => this.clearFiles());
 
         // Speaker input validation and persistence
         this.speakerInput.addEventListener('input', () => {
@@ -287,6 +301,159 @@ class TranscriptionApp {
         const hours = String(now.getHours()).padStart(2, '0');
         const minutes = String(now.getMinutes()).padStart(2, '0');
         const fileName = `transcription_${year}${month}${date}_${hours}${minutes}.txt`;
+
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    handleFileSelect(event) {
+        const newFiles = Array.from(event.target.files);
+
+        newFiles.forEach(file => {
+            // Check for duplicates based on name and size
+            const isDuplicate = this.selectedFiles.some(f =>
+                f.name === file.name && f.size === file.size
+            );
+
+            if (!isDuplicate) {
+                this.selectedFiles.push(file);
+            }
+        });
+
+        // Reset input so same file can be selected again if it was removed
+        this.logUpload.value = '';
+
+        this.updateFileList();
+    }
+
+    updateFileList() {
+        this.fileList.innerHTML = '';
+
+        if (this.selectedFiles.length === 0) {
+            const emptyMsg = document.createElement('li');
+            emptyMsg.className = 'empty-list-message';
+            emptyMsg.textContent = 'ファイルが選択されていません';
+            this.fileList.appendChild(emptyMsg);
+            this.mergeBtn.disabled = true;
+            return;
+        }
+
+        this.selectedFiles.forEach((file, index) => {
+            const li = document.createElement('li');
+            li.className = 'file-item';
+
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'file-name';
+            nameSpan.textContent = file.name;
+            nameSpan.title = file.name; // Tooltip for long names
+
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'remove-file-btn';
+            removeBtn.innerHTML = '×';
+            removeBtn.title = '削除';
+            removeBtn.onclick = () => this.removeFile(index);
+
+            li.appendChild(nameSpan);
+            li.appendChild(removeBtn);
+            this.fileList.appendChild(li);
+        });
+
+        this.mergeBtn.disabled = false;
+    }
+
+    removeFile(index) {
+        this.selectedFiles.splice(index, 1);
+        this.updateFileList();
+    }
+
+    clearFiles() {
+        this.selectedFiles = [];
+        this.updateFileList();
+    }
+
+    async mergeLogs() {
+        if (this.selectedFiles.length === 0) return;
+
+        this.mergeBtn.disabled = true;
+        this.mergeBtn.textContent = '統合中...';
+
+        try {
+            const allEntries = [];
+
+            for (let i = 0; i < this.selectedFiles.length; i++) {
+                const text = await this.selectedFiles[i].text();
+                const entries = this.parseLogFile(text);
+                allEntries.push(...entries);
+            }
+
+            // Sort by timestamp
+            allEntries.sort((a, b) => a.date - b.date);
+
+            // Generate merged content
+            const mergedContent = allEntries.map(entry => {
+                return `${entry.rawTimestamp} ${entry.content}`;
+            }).join('\n');
+
+            this.downloadMergedLog(mergedContent);
+
+        } catch (error) {
+            console.error('Log merge failed:', error);
+            alert('ログの統合に失敗しました。ファイル形式を確認してください。');
+        } finally {
+            this.mergeBtn.disabled = false;
+            this.mergeBtn.innerHTML = '<span class="icon">💾</span> 統合して保存';
+        }
+    }
+
+    parseLogFile(text) {
+        const lines = text.split('\n');
+        const entries = [];
+        // Regex to match timestamp: [YYYY/MM/DD(Day) HH:MM:SS]
+        // Example: [2023/11/29(土) 18:30:00] [Speaker] Text
+        const timestampRegex = /^\[(\d{4}\/\d{1,2}\/\d{1,2}\(.\) \d{1,2}:\d{2}:\d{2})\] (.*)$/;
+
+        lines.forEach(line => {
+            const match = line.match(timestampRegex);
+            if (match) {
+                const rawTimestamp = `[${match[1]}]`;
+                const content = match[2];
+
+                // Parse date for sorting
+                // Remove day of week for parsing: 2023/11/29(土) 18:30:00 -> 2023/11/29 18:30:00
+                const dateStr = match[1].replace(/\(.\)/, '');
+                const date = new Date(dateStr);
+
+                entries.push({
+                    date: date,
+                    rawTimestamp: rawTimestamp,
+                    content: content
+                });
+            }
+        });
+
+        return entries;
+    }
+
+    downloadMergedLog(content) {
+        if (!content) {
+            alert('統合されたログが空です。');
+            return;
+        }
+
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const date = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const fileName = `merged_transcription_${year}${month}${date}_${hours}${minutes}.txt`;
 
         const blob = new Blob([content], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);

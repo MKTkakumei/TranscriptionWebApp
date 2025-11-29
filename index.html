@@ -42,6 +42,34 @@
             </button>
         </div>
 
+        <details class="merge-section">
+            <summary class="btn btn-secondary merge-summary">
+                <span class="icon">🔄</span> ログ統合機能（クリックで展開）
+            </summary>
+            <div class="merge-controls">
+                <div class="file-list-container">
+                    <ul id="fileList" class="file-list">
+                        <!-- Selected files will be listed here -->
+                        <li class="empty-list-message">ファイルが選択されていません</li>
+                    </ul>
+                </div>
+                <div class="merge-actions">
+                    <div class="input-group">
+                        <label for="logUpload" class="file-upload-label btn btn-secondary btn-sm">
+                            <span class="icon">➕</span> ファイルを追加
+                        </label>
+                        <input type="file" id="logUpload" multiple accept=".txt" style="display: none;">
+                        <button id="clearFilesBtn" class="btn btn-secondary btn-sm">
+                            <span class="icon">🗑️</span> クリア
+                        </button>
+                    </div>
+                    <button id="mergeBtn" class="btn btn-primary" disabled>
+                        <span class="icon">💾</span> 統合して保存
+                    </button>
+                </div>
+            </div>
+        </details>
+
         <div class="transcription-area" id="transcriptionLog">
             <!-- Logs will appear here -->
             <div class="placeholder-text">「文字起こし開始」ボタンを押して文字起こしを開始します...</div>
