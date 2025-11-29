@@ -248,33 +248,6 @@ class TranscriptionApp {
         const now = Date.now();
 
         // 1. Exact duplicate prevention (within 2 seconds)
-        if (text === this.lastLogContent && (now - this.lastLogTime) < 2000) {
-            console.log('Duplicate log ignored:', text);
-            return;
-        }
-
-        // 2. Overlap replacement (New log starts with previous log)
-        // Example: "Hello" -> "Hello world"
-        // This often happens on mobile when long sentences are processed
-        if (this.lastLogContent && text.startsWith(this.lastLogContent) && this.lastLogContent.length > 0) {
-            console.log('Replacing partial log:', this.lastLogContent, 'with:', text);
-
-            // Remove the last log entry from DOM
-            const entries = this.logArea.querySelectorAll('.log-entry:not(.interim)');
-            if (entries.length > 0) {
-                const lastEntry = entries[entries.length - 1];
-                // Double check if the text matches to be safe
-                if (lastEntry.querySelector('.text').textContent === this.lastLogContent) {
-                    lastEntry.remove();
-                }
-            }
-        }
-
-        this.lastLogContent = text;
-        this.lastLogTime = now;
-
-        const entryDiv = document.createElement('div');
-        entryDiv.className = 'log-entry';
 
         const timeSpan = document.createElement('span');
         timeSpan.className = 'timestamp';
