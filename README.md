@@ -1,7 +1,29 @@
-# Transcription Web App
+# 文字起こしWebアプリ (Transcription Web App)
 
-This is a web application for transcription.
+リアルタイムで音声認識を行い、文字起こしを行うWebアプリケーションです。
+段階的に機能を拡張し、最終的には話者分離機能の実装を目指しています。
 
-## Getting Started
+## 機能概要
 
-(Instructions to be added)
+### フェーズ1: 基本機能 (現在開発中)
+- **リアルタイム文字起こし**: マイク入力から即座にテキスト化します。
+- **タイムスタンプ表示**: 発言ごとの時間を記録・表示します。
+- **ログ保持**: ブラウザを開いている間、ログを蓄積します。
+
+### フェーズ2: ログ保存機能 (予定)
+- **テキスト出力**: 文字起こしログをテキストファイルとしてダウンロードできます。
+
+### フェーズ3: 話者分離 (予定)
+- **話者識別**: `Pyannote.audio` (Python) を使用し、誰が話しているかを識別します。
+
+## 技術スタック
+
+- **フロントエンド**: HTML, CSS, JavaScript (Vanilla)
+- **STTエンジン**: Web Speech API
+- **バックエンド (Phase 3)**: Python (FastAPI/Flask), Pyannote.audio
+
+## 使い方
+
+1. `index.html` をブラウザで開きます。
+2. 「開始」ボタンを押してマイクの使用を許可します。
+3. 話しかけると、画面に文字起こし結果が表示されます。
