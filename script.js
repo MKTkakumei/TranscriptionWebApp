@@ -6,6 +6,8 @@ class TranscriptionApp {
         // DOM Elements
         this.startBtn = document.getElementById('startBtn');
         this.stopBtn = document.getElementById('stopBtn');
+        this.downloadBtn = document.getElementById('downloadBtn');
+        this.speakerInput = document.getElementById('speakerName');
         this.statusEl = document.getElementById('status');
         this.logArea = document.getElementById('transcriptionLog');
 
@@ -33,6 +35,7 @@ class TranscriptionApp {
         // Event Listeners
         this.startBtn.addEventListener('click', () => this.startRecording());
         this.stopBtn.addEventListener('click', () => this.stopRecording());
+        this.downloadBtn.addEventListener('click', () => this.downloadLog());
 
         // Recognition Events
         this.recognition.onstart = () => {
@@ -141,7 +144,11 @@ class TranscriptionApp {
 
         const timeSpan = document.createElement('span');
         timeSpan.className = 'timestamp';
-        timeSpan.textContent = `[${this.getFormattedDate()}]`;
+
+        const speakerName = this.speakerInput.value.trim();
+        const namePart = speakerName ? `[${speakerName}] ` : '';
+
+        timeSpan.textContent = `[${this.getFormattedDate()}] ${namePart}`;
 
         const textDiv = document.createElement('div');
         textDiv.className = 'text';
@@ -174,6 +181,39 @@ class TranscriptionApp {
 
     scrollToBottom() {
         this.logArea.scrollTop = this.logArea.scrollHeight;
+    }
+
+    downloadLog() {
+        const entries = this.logArea.querySelectorAll('.log-entry:not(.interim)');
+        if (entries.length === 0) {
+            alert('保存するログがありません。');
+            return;
+        }
+
+        let content = '';
+        entries.forEach(entry => {
+            const timeAndName = entry.querySelector('.timestamp').textContent;
+            const text = entry.querySelector('.text').textContent;
+            content += `${timeAndName} ${text}\n`;
+        });
+
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const date = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const fileName = `transcription_${year}${month}${date}_${hours}${minutes}.txt`;
+
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
     }
 }
 
