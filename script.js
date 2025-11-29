@@ -23,6 +23,10 @@ class TranscriptionApp {
         // Interim result element
         this.interimDiv = null;
 
+        // Duplicate prevention state
+        this.lastLogContent = '';
+        this.lastLogTime = 0;
+
         this.init();
         this.setupVisibilityDetection();
     }
@@ -235,6 +239,16 @@ class TranscriptionApp {
 
     addLogEntry(text) {
         if (!text.trim()) return;
+
+        // Duplicate prevention
+        const now = Date.now();
+        if (text === this.lastLogContent && (now - this.lastLogTime) < 2000) {
+            console.log('Duplicate log ignored:', text);
+            return;
+        }
+
+        this.lastLogContent = text;
+        this.lastLogTime = now;
 
         const entryDiv = document.createElement('div');
         entryDiv.className = 'log-entry';
