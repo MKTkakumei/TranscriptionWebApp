@@ -24,7 +24,6 @@ body {
     justify-content: center;
     align-items: center;
     overflow: hidden;
-    /* For blobs */
     position: relative;
 }
 
@@ -108,22 +107,34 @@ header {
 
 h1 {
     font-size: 2.5rem;
-    font-weight: 700;
+    font-weight: 600;
     margin-bottom: 0.5rem;
-    letter-spacing: -0.05em;
+    color: var(--text-color);
 }
 
 .gradient-text {
-    background: linear-gradient(to right, #38bdf8, #818cf8);
+    background: linear-gradient(135deg, var(--accent-color), var(--secondary-color));
     -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
     background-clip: text;
-    color: transparent;
 }
 
 .status {
+    font-size: 1.1rem;
+    color: var(--accent-color);
+    margin: 0.5rem 0;
+    font-weight: 500;
+}
+
+.status.warning {
+    color: #fbbf24;
+}
+
+.hint {
     font-size: 0.9rem;
     color: #94a3b8;
-    font-weight: 300;
+    margin: 0.5rem 0;
+    font-style: italic;
 }
 
 /* Controls */
