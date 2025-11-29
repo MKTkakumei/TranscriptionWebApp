@@ -40,182 +40,113 @@ class TranscriptionApp {
         // Recognition Events
         this.recognition.onstart = () => {
             this.isRecording = true;
-            this.updateUI(true);
-            this.statusEl.textContent = '聞き取っています...';
-        };
+            this.updateUI(false);
+            this.removeInterimDiv();
+        }
 
-        this.recognition.onend = () => {
-            if (this.isRecording) {
-                // If it stopped but we didn't click stop (e.g. silence), restart it
-                try {
-                    this.recognition.start();
-                } catch (e) {
-                    console.log('Restarting recognition...');
-                }
+        updateUI(isRecording) {
+            this.startBtn.disabled = isRecording;
+            this.stopBtn.disabled = !isRecording;
+
+            if (isRecording) {
+                document.body.classList.add('recording');
             } else {
-                this.updateUI(false);
-                this.statusEl.textContent = '文字起こし準備完了';
-                this.removeInterimDiv();
+                document.body.classList.remove('recording');
             }
-        };
+        }
 
-        this.recognition.onresult = (event) => {
-            let interimTranscript = '';
-            let finalTranscript = '';
+        getFormattedDate() {
+            const now = new Date();
+            const days = ['日', '月', '火', '水', '木', '金', '土'];
+            const year = now.getFullYear();
+            const month = now.getMonth() + 1;
+            const date = now.getDate();
+            const day = days[now.getDay()];
+            const time = now.toLocaleTimeString('ja-JP', { hour12: false });
 
-            for (let i = event.resultIndex; i < event.results.length; ++i) {
-                if (event.results[i].isFinal) {
-                    finalTranscript += event.results[i][0].transcript;
-                } else {
-                    interimTranscript += event.results[i][0].transcript;
-                }
+            return `${year}/${month}/${date}(${day}) ${time}`;
+        }
+
+        addLogEntry(text) {
+            if (!text.trim()) return;
+
+            const entryDiv = document.createElement('div');
+            entryDiv.className = 'log-entry';
+
+            const timeSpan = document.createElement('span');
+            timeSpan.className = 'timestamp';
+
+            const speakerName = this.speakerInput.value.trim();
+            const namePart = speakerName ? `[${speakerName}] ` : '';
+
+            timeSpan.textContent = `[${this.getFormattedDate()}] ${namePart}`;
+
+            const textDiv = document.createElement('div');
+            textDiv.className = 'text';
+            textDiv.textContent = text;
+
+            entryDiv.appendChild(timeSpan);
+            entryDiv.appendChild(textDiv);
+
+            this.logArea.appendChild(entryDiv);
+            this.scrollToBottom();
+        }
+
+        updateInterimDiv(text) {
+            if (!this.interimDiv) {
+                this.interimDiv = document.createElement('div');
+                this.interimDiv.className = 'log-entry interim';
+                this.interimDiv.style.opacity = '0.7'; // Visual cue for interim
+                this.logArea.appendChild(this.interimDiv);
+            }
+            this.interimDiv.textContent = text;
+            this.scrollToBottom();
+        }
+
+        removeInterimDiv() {
+            if (this.interimDiv) {
+                this.interimDiv.remove();
+                this.interimDiv = null;
+            }
+        }
+
+        scrollToBottom() {
+            this.logArea.scrollTop = this.logArea.scrollHeight;
+        }
+
+        downloadLog() {
+            const entries = this.logArea.querySelectorAll('.log-entry:not(.interim)');
+            if (entries.length === 0) {
+                alert('保存するログがありません。');
+                return;
             }
 
-            if (finalTranscript) {
-                this.removeInterimDiv();
-                this.addLogEntry(finalTranscript);
-            }
+            let content = '';
+            entries.forEach(entry => {
+                const timeAndName = entry.querySelector('.timestamp').textContent;
+                const text = entry.querySelector('.text').textContent;
+                content += `${timeAndName} ${text}\n`;
+            });
 
-            if (interimTranscript) {
-                this.updateInterimDiv(interimTranscript);
-            }
-        };
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const date = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const fileName = `transcription_${year}${month}${date}_${hours}${minutes}.txt`;
 
-        this.recognition.onerror = (event) => {
-            console.error('Speech recognition error', event.error);
-            if (event.error === 'not-allowed') {
-                alert('マイクへのアクセスが拒否されました。マイクの使用を許可してください。');
-                this.stopRecording();
-            }
-        };
-    }
-
-    startRecording() {
-        if (this.isRecording) return;
-
-        // Clear placeholder if it exists
-        const placeholder = this.logArea.querySelector('.placeholder-text');
-        if (placeholder) {
-            placeholder.remove();
-        }
-
-        try {
-            this.recognition.start();
-        } catch (e) {
-            console.error(e);
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
         }
     }
-
-    stopRecording() {
-        this.isRecording = false;
-        this.recognition.stop();
-        this.updateUI(false);
-        this.removeInterimDiv();
-    }
-
-    updateUI(isRecording) {
-        this.startBtn.disabled = isRecording;
-        this.stopBtn.disabled = !isRecording;
-
-        if (isRecording) {
-            document.body.classList.add('recording');
-        } else {
-            document.body.classList.remove('recording');
-        }
-    }
-
-    getFormattedDate() {
-        const now = new Date();
-        const days = ['日', '月', '火', '水', '木', '金', '土'];
-        const year = now.getFullYear();
-        const month = now.getMonth() + 1;
-        const date = now.getDate();
-        const day = days[now.getDay()];
-        const time = now.toLocaleTimeString('ja-JP', { hour12: false });
-
-        return `${year}/${month}/${date}(${day}) ${time}`;
-    }
-
-    addLogEntry(text) {
-        if (!text.trim()) return;
-
-        const entryDiv = document.createElement('div');
-        entryDiv.className = 'log-entry';
-
-        const timeSpan = document.createElement('span');
-        timeSpan.className = 'timestamp';
-
-        const speakerName = this.speakerInput.value.trim();
-        const namePart = speakerName ? `[${speakerName}] ` : '';
-
-        timeSpan.textContent = `[${this.getFormattedDate()}] ${namePart}`;
-
-        const textDiv = document.createElement('div');
-        textDiv.className = 'text';
-        textDiv.textContent = text;
-
-        entryDiv.appendChild(timeSpan);
-        entryDiv.appendChild(textDiv);
-
-        this.logArea.appendChild(entryDiv);
-        this.scrollToBottom();
-    }
-
-    updateInterimDiv(text) {
-        if (!this.interimDiv) {
-            this.interimDiv = document.createElement('div');
-            this.interimDiv.className = 'log-entry interim';
-            this.interimDiv.style.opacity = '0.7'; // Visual cue for interim
-            this.logArea.appendChild(this.interimDiv);
-        }
-        this.interimDiv.textContent = text;
-        this.scrollToBottom();
-    }
-
-    removeInterimDiv() {
-        if (this.interimDiv) {
-            this.interimDiv.remove();
-            this.interimDiv = null;
-        }
-    }
-
-    scrollToBottom() {
-        this.logArea.scrollTop = this.logArea.scrollHeight;
-    }
-
-    downloadLog() {
-        const entries = this.logArea.querySelectorAll('.log-entry:not(.interim)');
-        if (entries.length === 0) {
-            alert('保存するログがありません。');
-            return;
-        }
-
-        let content = '';
-        entries.forEach(entry => {
-            const timeAndName = entry.querySelector('.timestamp').textContent;
-            const text = entry.querySelector('.text').textContent;
-            content += `${timeAndName} ${text}\n`;
-        });
-
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const date = String(now.getDate()).padStart(2, '0');
-        const hours = String(now.getHours()).padStart(2, '0');
-        const minutes = String(now.getMinutes()).padStart(2, '0');
-        const fileName = `transcription_${year}${month}${date}_${hours}${minutes}.txt`;
-
-        const blob = new Blob([content], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    }
-}
 
 // Initialize App
 document.addEventListener('DOMContentLoaded', () => {
