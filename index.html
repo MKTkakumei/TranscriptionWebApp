@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TranscriptionWebApp Pro</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Noto+Sans+JP:wght@300;400;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="background-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <main class="glass-container">
+        <header>
+            <h1>TranscriptionWebApp <span class="gradient-text">Pro</span></h1>
+            <p class="status" id="status">文字起こし準備完了</p>
+        </header>
+
+        <div class="controls">
+            <button id="startBtn" class="btn btn-primary">
+                <span class="icon">🎙️</span> 文字起こし開始
+            </button>
+            <button id="stopBtn" class="btn btn-secondary" disabled>
+                <span class="icon">⏹️</span> 停止
+            </button>
+        </div>
+
+        <div class="transcription-area" id="transcriptionLog">
+            <!-- Logs will appear here -->
+            <div class="placeholder-text">「文字起こし開始」ボタンを押して文字起こしを開始します...</div>
+        </div>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
